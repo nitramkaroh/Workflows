@@ -18,17 +18,12 @@ class Workflow_1_1_5x(Workflow.Workflow):
    
     def __init__(self, targetTime=PQ.PhysicalQuantity('0 s')):
         """
-        Initializes the workflow. As the workflow is non-stationary, we allocate individual 
-        applications and store them within a class.
+        Initializes the workflow.
         """
         super(Workflow_1_1_5x, self).__init__(file='', workdir='', targetTime=targetTime)
 
         #list of recognized input porperty IDs
-        self.myInputPropIDs = [PropertyID.PID_MatrixYoung, PropertyID.PID_MatrixPoisson, PropertyID.PID_InclusionYoung, PropertyID.PID_InclusionPoisson, PropertyID.PID_InclusionVolumeFraction, PropertyID.PID_InclusionAspectRatio
-
-
-
-        ]
+        self.myInputPropIDs = [PropertyID.PID_MatrixYoung, PropertyID.PID_MatrixPoisson, PropertyID.PID_InclusionYoung, PropertyID.PID_InclusionPoisson, PropertyID.PID_InclusionVolumeFraction, PropertyID.PID_InclusionAspectRatio]
         # list of compulsory IDs
         self.myCompulsoryPropIDs = self.myInputPropIDs
 
@@ -124,7 +119,9 @@ class Workflow_1_1_5x(Workflow.Workflow):
             compositeTransverseShear = self.digimatSolver.getProperty(PropertyID.PID_CompositeTransverseShear)
             self.myOutProps[PropertyID.PID_CompositeInPlanePoisson] = self.digimatSolver.getProperty(PropertyID.PID_CompositeInPlanePoisson)
             compositeInPlanePoisson = self.digimatSolver.getProperty(PropertyID.PID_CompositeInPlanePoisson)
-            self.myOutProps[PropertyID.PID_CompositeTransversePoisson] = self.digimatSolver.getProperty(PropertyID.PID_CompositeTransversePoisson)          
+            self.myOutProps[PropertyID.PID_CompositeTransversePoisson] = self.digimatSolver.getProperty(PropertyID.PID_CompositeTransversePoisson)
+            compositeTransversePoisson = self.digimatSolver.getProperty(PropertyID.PID_CompositeTransversePoisson)
+
         except Exception as err:
             print ("Error:" + repr(err))
             self.terminate()

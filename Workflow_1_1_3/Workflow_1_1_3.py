@@ -108,8 +108,9 @@ class Workflow_1_1_3(Workflow.Workflow):
             # get result of the simulation
             matrixYoung = self.lammpsSolver.getProperty(PropertyID.PID_EModulus, 0.0)
             matrixPoisson = self.lammpsSolver.getProperty(PropertyID.PID_PoissonRatio, 0.0)
-            self.myOutProps[PropertyID.PID_EModulus] = self.lammpsSolver.getProperty(PropertyID.PID_EModulus, 0.0)
-            self.myOutProps[PropertyID.PID_PoissonRatio] = self.lammpsSolver.getProperty(PropertyID.PID_PoissonRatio, 0.0)
+            self.myOutProps[PropertyID.PID_EModulus] = matrixYoung
+            self.myOutProps[PropertyID.PID_PoissonRatio] = matrixPoisson
+
         except Exception as err:
             print ("Error:" + repr(err))
             self.terminate()
