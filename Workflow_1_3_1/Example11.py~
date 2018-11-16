@@ -1,0 +1,242 @@
+import sys
+sys.path.extend(['..', '../../..'])
+from mupif import *
+import Pyro4
+import argparse
+#Read int for mode as number behind '-m' argument: 0-local (default), 1-ssh, 2-VPN 
+mode = argparse.ArgumentParser(parents=[Util.getParentParser()]).parse_args().mode
+from thermalServerConfig import serverConfig
+cfg = serverConfig(mode)
+from mechanicalServerConfig import serverConfig
+mCfg = serverConfig(mode)
+import logging
+log = logging.getLogger()
+import time as timeT
+import mupif.Physics.PhysicalQuantities as PQ
+
+
+class Workflow1(Workflow.Workflow):
+   
+    def __init__(self, targetTime=PQ.PhysicalQuantity('0 s')):
+        """
+        Initializes the workflow. As the workflow is non-stationary, we allocate individual 
+        applications and store them within a class.
+        """
+        super(Workflow1, self).__init__(file='', workdir='', targetTime=targetTime)
+
+        # fixed material properties for this workflow
+        inclusionYoung = 10
+        inclusionPoisson = 0.25
+        inclusionVolumeFraction = 0.1
+        inclusionAspectRatio = 0.5
+
+        self.myInputPropsIDs = (all props ID)
+        self.myCompulsoryPropsIDs = (PID_CROSSLINKONG_DENSITY, PID_CompositeAxialYoung)
+        self.myInputProps = {}
+        self.myOutProps = {}
+
+        #locate nameserver
+        ns = PyroUtil.connectNameServer(nshost=cfg.nshost, nsport=cfg.nsport, hkey=cfg.hkey)
+        #connect to JobManager running on (remote) server
+	self.digimatJobMan = PyroUtil.connectJobManager(ns, mCfg.jobManName, cfg.hkey)
+
+        self.lammpsSolver = emailAPI()
+        self.digimatSolver = None
+        #allocate the application instances
+        try:
+            self.digimatSolver = PyroUtil.allocateApplicationWithJobManager( ns, self.digimatJobMan, mCfg.jobNatPorts[0], mCfg.hkey, PyroUtil.SSHContext(userName = mCfg.serverUserName,sshClient=mCfg.sshClient, options=mCfg.options, sshHost=mCfg.sshHost ))
+            log.info('Created digimat job')
+        except Exception as e:
+            log.exception(e)
+        else:
+            if ((self.lammpsSolver is not None) and (self.digimatSolver is not None)):
+                lammpsSolverSignature=self.lammpsSolver.getApplicationSignature()
+                log.info("Working lammps solver on server " + lammpsSolverSignature)
+                digimatSolverSignature=self.digimatSolver.getApplicationSignature()
+                log.info("Working digimat solver on server " + digimatSolverSignature)
+            else:
+                log.debug("Connection to server failed, exiting")
+
+
+    def setProperty(self, property, objectID=0):
+        propID = property.getPropertyID()
+        if (propID in self.myInputPropsIDs):
+            self.myInputProps[propID]=property
+        else:
+            unsupported/unrecognized prop
+            
+        if (propID == PID_SMILE_MOLECULAR_STRUCTURE):
+            sel.myProps[PID_SMILE_FILLER_MOLECULAR_STRUCTURE]=property
+            self.monomerMolStructure = property
+        elif(propID == PID_MOLECULAR_WEIGHT):
+            self.polymerMolWeight = property
+        elif(propID == PID_CROSSLINKER_TYPE):
+            self.crosslinkerType = property
+        elif(propID == PID_FILLER_DESIGNATION):
+            self.fillerDesignation = property
+        elif(propID == PID_CROSSLINKONG_DENSITY):
+            self.crosslinkingDens = property
+        elif(propID == PID_FILLER_CONCENTRATION):
+            self.fillerConc = property
+        elif(propID == PID_TEMPERATURE):
+            self.temperature = property
+        elif(propID == PID_PRESSURE):
+            self.pressure = property
+        elif(propID == PID_POLYDISPERSITY_INDEX):
+            self.polyIndex = property
+        elif(propID == PID_SMILE_MODIFIER_MOLECULAR_STRUCTURE):
+            self.fillerModMolStructure = property
+        elif(propID == PID_SMILE_FILLER_MOLECULAR_STRUCTURE):
+            self.polFilCompatibilizerMolStructure = property
+        elif(propID == PropertyID.PID_DENSITY_OF_FUNCTIONALIZATION):
+            self.functionalizationDens = property
+        elif(propID == DigimatPropertyID.PID_CompositeAxialYoung):
+            self.compositeAxialYoung = property
+        elif(propID == DigimatPropertyID.PID_CompositeInPlaneYoung):
+            self.compositeInPlaneYoung = property
+        elif(propID == DigimatPropertyID.PID_CompositeInPlaneShear):
+            self.compositeInPlaneShear = property
+        elif(propID == DigimatPropertyID.PID_CompositeTransverseShear):
+            self.compositeTransverseShear = property
+        elif(propID == DigimatPropertyID.PID_CompositeInPlanePoisson):
+            self.compositeInPlanePoisson = property
+        elif(propID == DigimatPropertyID.PID_CompositeTransversePoisson):
+            self.compositeTransversePoisson = property
+        else:
+            raise APIError.APIError('Unknown property ID')
+
+    def getProperty(self, propID, time, objectID=0):
+        """
+        Returns property identified by its ID evaluated at given time.
+
+        :param PropertyID propID: property ID
+        :param float time: Time when property should to be evaluated
+        :param int objectID: Identifies object/submesh on which property is evaluated (optional, default 0)
+
+        :return: Returns representation of requested property
+        :rtype: Property
+        """
+        if (propID in self.myOutProps):
+            return self.myOutProps[propID];
+        else:
+            raise APIError.APIError ('Unknown property ID')   
+
+
+    def solveStep(self, istep, stageID=0, runInBackground=False):
+
+        for cID in self.myCompulsoryPropsIDs:
+            if cID not in myProps:
+                error ("Missing compulsory propoety", cID);
+
+        try:
+            # lammps 
+	    lammpsSolver.setProperty(self.monomerMolStructure)
+	    lammpsSolver.setProperty(self.polymerMolWeight)
+	    lammpsSolver.setProperty(self.crosslinkerType)
+	    lammpsSolver.setProperty(self.fillerDesignation)
+	    lammpsSolver.setProperty(self.crosslinkingDens)
+	    lammpsSolver.setProperty(self.fillerConc)
+	    lammpsSolver.setProperty(self.temperature)
+	    lammpsSolver.setProperty(self.pressure)
+	    lammpsSolver.setProperty(self.polyIndex)
+	    lammpsSolver.setProperty(self.fillerModMolStructure)
+	    lammpsSolver.setProperty(self.polFilCompatibilizerMolStructure)
+	    lammpsSolver.setProperty(self.functionalizationDens)
+	    # solve (involves operator interaction)
+	    lammpsSolver.solveStep (useCaseID, execID, TimeStep.TimeStep(0.0, 0.1, 1, 's'))
+	    # get result of the simulation
+	    matrixYoung = lammpsSolver.getProperty(PropertyID.PID_EModulus, 0.0).getValue()
+            matrixPoissons = lammpsSolver.getProperty(PropertyID.PID_PoissonRatio, 0.0).getValue()
+
+
+	# digimat
+	try:
+            # properties form lammps
+        	digimatSolver.setProperty(Property.ConstantProperty(matrixYoung, DigimatPropertyID.PID_MatrixYoung,               ValueType.Scalar, "MPa"))
+        	digimatSolver.setProperty(Property.ConstantProperty(matrixPoisson, DigimatPropertyID.PID_MatrixPoisson,             ValueType.Scalar, "none"))
+            # fixed properties
+                digimatSolver.setProperty(Property.ConstantProperty(inclusionYoung, DigimatPropertyID.PID_InclusionYoung,            ValueType.Scalar, "MPa"))
+        	digimatSolver.setProperty(Property.ConstantProperty(inclusionPoisson, DigimatPropertyID.PID_InclusionPoisson,          ValueType.Scalar, "none"))
+        	digimatSolver.setProperty(Property.ConstantProperty(inclusionVolumeFraction, DigimatPropertyID.PID_InclusionVolumeFraction,   ValueType.Scalar, "none"))
+        	digimatSolver.setProperty(Property.ConstantProperty(inclusionAspectRatio, DigimatPropertyID.PID_InclusionAspectRatio,      ValueType.Scalar, "none"))
+        	digimatSolver.solve()
+                ##
+                self.myOutProps[DigimatPropertyID.PID_CompositeAxialYoung] = digimat......
+
+                
+        	self.compositeAxialYoung = digimatSolver.getProperty(DigimatPropertyID.PID_CompositeAxialYoung).inUnitsOf('MPa').getValue()
+                self.myOutProps[PID_CompositeAxialYoung]
+        	compositeInPlaneYoung = digimatSolver.getProperty(DigimatPropertyID.PID_CompositeInPlaneYoung).inUnitsOf('MPa').getValue()
+        	compositeInPlaneShear = digimatSolver.getProperty(DigimatPropertyID.PID_CompositeInPlaneShear).inUnitsOf('MPa').getValue()
+        	compositeTransverseShear = digimatSolver.getProperty(DigimatPropertyID.PID_CompositeTransverseShear).inUnitsOf('MPa').getValue()
+        	compositeInPlanePoisson = digimatSolver.getProperty(DigimatPropertyID.PID_CompositeInPlanePoisson).getValue()
+        	compositeTransversePoisson = digimatSolver.getProperty(DigimatPropertyID.PID_CompositeTransversePoisson).getValue()
+                ##
+                workflow1.setProperty(compositeAxialYoung)
+                workflow1.setProperty(compositeInPlaneYoung)
+                workflow1.setProperty(compositeInPlaneShear)
+                workflow1.setProperty(compositeTransverseShear)
+                workflow1.setProperty(compositeInPlanePoisson)
+                workflow1.setProperty(compositeTransversePoisson)
+
+	except APIError.APIError as err:
+        	print ("Mupif API for DIGIMAT-MF error: "+ repr(err))
+	except Exception as err:
+		print ("Error: " + repr(err))
+	except:
+		print ("Unkown error.")
+
+
+
+
+
+    def getCriticalTimeStep(self):
+        # determine critical time step
+        return PQ.PhysicalQuantity(1.0, 's')
+
+    def terminate(self):
+        
+        #self.thermalAppRec.terminateAll()
+        self.lammpsSolver.terminate()
+        self.lammpsJobMan.terminate()
+        self.digimatSolver.terminate()
+        self.digiamtJobMan.terminate()
+        self.appsTunnel.terminate()
+        super(Workflow1, self).terminate()
+
+    def getApplicationSignature(self):
+        return "Demo11 workflow 1.0"
+
+    def getAPIVersion(self):
+        return "1.0"
+
+    
+if __name__=='__main__':
+    workflow1 = Workflow1(targetTime=PQ.PhysicalQuantity(1.,'s'))
+    # create and set lammps material properties
+    workflow1.setProperty(Property.ConstantProperty(monomerMolStructure, PropertyID.PID_SMILE_MOLECULAR_STRUCTURE, ValueType.Scalar, PhysicalQuantities.getDimensionlessUnit(), None, 0))
+    workflow1.setProperty(Property.ConstantProperty(polymerMolWeight, PropertyID.PID_MOLECULAR_WEIGHT, ValueType.Scalar, 'mol', None, 0))
+    workflow1.setProperty(Property.ConstantProperty(crosslinkerType, PropertyID.PID_CROSSLINKER_TYPE, ValueType.Scalar, PhysicalQuantities.getDimensionlessUnit(), None, 0))
+    workflow1.setProperty(Property.ConstantProperty(fillerDesignation, PropertyID.PID_FILLER_DESIGNATION, ValueType.Scalar, PhysicalQuantities.getDimensionlessUnit(), None, 0))
+    workflow1.setProperty(Property.ConstantProperty(crosslinkingDens, PropertyID.PID_CROSSLINKONG_DENSITY, ValueType.Scalar, PhysicalQuantities.getDimensionlessUnit(), None, 0))
+    workflow1.setProperty(Property.ConstantProperty(fillerConc, PropertyID.PID_FILLER_CONCENTRATION, ValueType.Scalar, PhysicalQuantities.getDimensionlessUnit(), None, 0))
+    workflow1.setProperty(Property.ConstantProperty(temperature, PropertyID.PID_TEMPERATURE, ValueType.Scalar, 'degC', None, 0))
+    workflow1.setProperty(Property.ConstantProperty(pressure, PropertyID.PID_PRESSURE, ValueType.Scalar, 'atm', None, 0))
+    workflow1.setProperty(Property.ConstantProperty(polyIndex, PropertyID.PID_POLYDISPERSITY_INDEX, ValueType.Scalar, PhysicalQuantities.getDimensionlessUnit(), None, 0))
+    workflow1.setProperty(Property.ConstantProperty(fillerModMolStructure, PropertyID.PID_SMILE_MODIFIER_MOLECULAR_STRUCTURE, ValueType.Scalar, PhysicalQuantities.getDimensionlessUnit(), None, 0))
+    workflow1.setProperty(Property.ConstantProperty(polFilCompatibilizerMolStructure, PropertyID.PID_SMILE_FILLER_MOLECULAR_STRUCTURE, ValueType.Scalar, PhysicalQuantities.getDimensionlessUnit(), None, 0))
+    workflow1.setProperty(Property.ConstantProperty(functionalizationDens, PropertyID.PID_DENSITY_OF_FUNCTIONALIZATION, ValueType.Scalar, PhysicalQuantities.getDimensionlessUnit(), None, 0))   
+    
+    workflow1.solve()
+
+
+    compositeAxialYoung = workflow1.getProperty(DigimatPropertyID.PID_CompositeAxialYoung).inUnitsOf('MPa').getValue()
+    compositeInPlaneYoung = workflow1.getProperty(DigimatPropertyID.PID_CompositeInPlaneYoung).inUnitsOf('MPa').getValue()
+    compositeInPlaneShear = workflow1.getProperty(DigimatPropertyID.PID_CompositeInPlaneShear).inUnitsOf('MPa').getValue()
+    compositeTransverseShear = workflow1.getProperty(DigimatPropertyID.PID_CompositeTransverseShear).inUnitsOf('MPa').getValue()
+    compositeInPlanePoisson = workflow1.getProperty(DigimatPropertyID.PID_CompositeInPlanePoisson).getValue()
+    compositeTransversePoisson = workflow1.getProperty(DigimatPropertyID.PID_CompositeTransversePoisson).getValue()
+                
+    log.info("Test OK")
+
+
