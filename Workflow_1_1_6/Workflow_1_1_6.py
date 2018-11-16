@@ -13,15 +13,14 @@ nsport = 9090
 hkey = 'mupif-secret-key'
 digimatJobManName='eX_DigimatMF_JobManager'
 vpsJobManName='ESI_VPS_Jobmanager'
-comsolJobManName = 'Mupif.JobManager@INSA'
-        
-class Workflow_1_1_6x(Workflow.Workflow):
+
+class Workflow_1_1_6(Workflow.Workflow):
    
     def __init__(self, targetTime=PQ.PhysicalQuantity('0 s')):
         """
         Initializes the workflow.
         """
-        super(Workflow_1_1_6x, self).__init__(file='', workdir='', targetTime=targetTime)
+        super(Workflow_1_1_6, self).__init__(file='', workdir='', targetTime=targetTime)
 
         #list of recognized input porperty IDs
         self.myInputPropIDs = [PropertyID.PID_SMILE_MOLECULAR_STRUCTURE,PropertyID.PID_MOLECULAR_WEIGHT, PropertyID.PID_CROSSLINKER_TYPE,PropertyID.PID_FILLER_DESIGNATION, PropertyID.PID_CROSSLINKONG_DENSITY,PropertyID.PID_FILLER_CONCENTRATION, PropertyID.PID_TEMPERATURE, PropertyID.PID_PRESSURE, PropertyID.PID_POLYDISPERSITY_INDEX,PropertyID.PID_SMILE_MODIFIER_MOLECULAR_STRUCTURE,PropertyID.PID_SMILE_FILLER_MOLECULAR_STRUCTURE,PropertyID.PID_DENSITY_OF_FUNCTIONALIZATION, PropertyID.PID_InclusionYoung, PropertyID.PID_InclusionPoisson, PropertyID.PID_InclusionVolumeFraction, PropertyID.PID_InclusionAspectRatio]
@@ -40,33 +39,26 @@ class Workflow_1_1_6x(Workflow.Workflow):
         ns = PyroUtil.connectNameServer(nshost, nsport, hkey)
         #connect to digimat JobManager running on (remote) server
         self.digimatJobMan = PyroUtil.connectJobManager(ns, digimatJobManName,hkey)
-        #connect to comsol JobManager running on (remote) server
-        self.comsolJobMan = PyroUtil.connectJobManager(ns, comsolJobManName,hkey)
-        #connect to vpn JobManager running on (remote) server
-        self.vpsJobMan = PyroUtil.connectJobManager(ns, vpsJobManName,hkey)  
+        #connect to mult2 JobManager running on (remote) server
+        self.vpsJobMan = PyroUtil.connectJobManager(ns, vpsJobManName,hkey)
         # solvers
         self.lammpsSolver = lammps.emailAPI(None) # local LAMMPS API instances
         self.digimatSolver = None
-        self.comsolSolver = None
         self.vpsSolver = None
         #allocate the remote instances
         try:
             self.digimatSolver = PyroUtil.allocateApplicationWithJobManager( ns, self.digimatJobMan, None, hkey)
             log.info('Created digimat job')
-            self.comsolSolver = PyroUtil.allocateApplicationWithJobManager( ns, self.comsolJobMan, None, hkey)
-            log.info('Created comsol job')
             self.vpsSolver = PyroUtil.allocateApplicationWithJobManager( ns, self.vpsJobMan, None, hkey)
-            log.info('Created vps job')
+            log.info('Created vps job')            
         except Exception as e:
             log.exception(e)
         else:
-            if ((self.lammpsSolver is not None) and (self.digimatSolver is not None) and (self.comsolSolver is not None) and (self.vpsSolver is not None)):
+            if ((self.lammpsSolver is not None) and (self.digimatSolver is not None) and (self.vpsSolver is not None)):
                 lammpsSolverSignature=self.lammpsSolver.getApplicationSignature()
                 log.info("Working lammps solver on server " + lammpsSolverSignature)
                 digimatSolverSignature=self.digimatSolver.getApplicationSignature()
                 log.info("Working digimat solver on server " + digimatSolverSignature)
-                comsolSolverSignature=self.comsolSolver.getApplicationSignature()
-                log.info("Working comsol solver on server " + comsolSolverSignature)                
                 vpsSolverSignature=self.vpsSolver.getApplicationSignature()
                 log.info("Working vps solver on server " + vpsSolverSignature)
             else:
@@ -165,26 +157,6 @@ class Workflow_1_1_6x(Workflow.Workflow):
             self.terminate()
 
 
-
-        try:
-            # solve comsol part
-            log.info("Running comsol")
-            self.comsolSolver.solveStep(None)
-            ## get the desired properties
-            # get domain number to filter tooling
-            self.domainNumber = self.comsolSolver.getField(FieldID.FID_DomainNumber,0,0)
-            ## get fibre orientation for four different layers, already on filtered domain(no toling)
-            self.fibreOrientation0 = filterField(self.comsolSolver.getField(FieldID.FID_FibreOrientation,0,1), self.domainNumber, 1.0)
-	    self.fibreOrientation90 = filterField(self.comsolSolver.getField(FieldID.FID_FibreOrientation,0,2), self.domainNumber, 1.0)
-	    self.fibreOrientation45 = filterField(self.comsolSolver.getField(FieldID.FID_FibreOrientation,0,3), self.domainNumber, 1.0)
-	    self.fibreOrientation_45 = filterField(self.comsolSolver.getField(FieldID.FID_FibreOrientation,0,4), self.domainNumber, 1.0)
-	    
-            
-        except Exception as err:
-            print ("Error:" + repr(err))
-            self.terminate()     
-
-
         try:
             # map properties from Digimat to properties of VPS
             # Young modulus
@@ -217,18 +189,14 @@ class Workflow_1_1_6x(Workflow.Workflow):
             self.vpsSolver.setProperty(compositeInPlanePoisson)          
             self.vpsSolver.setProperty(compositeTransversePoisson1)
             self.vpsSolver.setProperty(compositeTransversePoisson2)
-
-            # set the field orientation, the objectID corresponds to layer angle, i.e, 0,90,45,-45
-            self.vpsSolver.setField(self.fibreOrientation0,FieldID.FID_FibreOrientation,0,0)
-            self.vpsSolver.setField(self.fibreOrientation90,FieldID.FID_FibreOrientation,0,90)
-            self.vpsSolver.setField(self.fibreOrientation45,FieldID.FID_FibreOrientation,0,45)
-            self.vpsSolver.setField(self.fibreOrientation_45,FieldID.FID_FibreOrientation,0,-45)
+            
+            
         except Exception as err:
             print ("Setting VPS params failed: " + repr(err));
             self.terminate()
             
         try:
-            # solve vps part
+            # solve digimat part
             log.info("Running vps")
             self.vpsSolver.solveStep(None)
             ## get the desired properties
@@ -244,11 +212,11 @@ class Workflow_1_1_6x(Workflow.Workflow):
         return PQ.PhysicalQuantity(1.0, 's')
 
     def terminate(self):
+        #self.thermalAppRec.terminateAll()
         self.lammpsSolver.terminate()
         self.digimatSolver.terminate()
-        self.comsolSolver.terminate()
         self.vpsSolver.terminate()
-        super(Workflow_1_1_6x, self).terminate()
+        super(Workflow_1_1_6, self).terminate()
 
     def getApplicationSignature(self):
         return "Composelector workflow 1.0"
@@ -262,7 +230,7 @@ if __name__=='__main__':
     useCaseID = 1
     execID = 1
     
-    workflow = Workflow_1_1_6x(targetTime=PQ.PhysicalQuantity(1.,'s'))
+    workflow = Workflow_1_1_6(targetTime=PQ.PhysicalQuantity(1.,'s'))
     # create and set lammps material properties
     workflow.setProperty(Property.ConstantProperty(1000, PropertyID.PID_SMILE_MOLECULAR_STRUCTURE, ValueType.Scalar, PQ.getDimensionlessUnit(), None, 0))
     workflow.setProperty(Property.ConstantProperty(100, PropertyID.PID_MOLECULAR_WEIGHT, ValueType.Scalar, 'mol', None, 0))
