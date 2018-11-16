@@ -246,9 +246,9 @@ class Workflow_1_1_6x(Workflow.Workflow):
         return PQ.PhysicalQuantity(1.0, 's')
 
     def terminate(self):
-        #self.thermalAppRec.terminateAll()
         self.lammpsSolver.terminate()
         self.digimatSolver.terminate()
+        self.comsolSolver.terminate()
         self.vpsSolver.terminate()
         super(Workflow_1_1_6x, self).terminate()
 
