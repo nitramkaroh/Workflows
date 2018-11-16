@@ -18,8 +18,7 @@ class Workflow_1_1_3(Workflow.Workflow):
    
     def __init__(self, targetTime=PQ.PhysicalQuantity('0 s')):
         """
-        Initializes the workflow. As the workflow is non-stationary, we allocate individual 
-        applications and store them within a class.
+        Initializes the workflow.
         """
         super(Workflow_1_1_3, self).__init__(file='', workdir='', targetTime=targetTime)
 
@@ -29,7 +28,7 @@ class Workflow_1_1_3(Workflow.Workflow):
         self.myCompulsoryPropIDs = self.myInputPropIDs
 
         #list of recognized output property IDs
-        self.myOutPropIDs =  [PropertyID.PID_CriticalLoadLevel, , PropertyID.PID_CompositeAxialYoung, PropertyID.PID_CompositeInPlaneYoung, PropertyID.PID_CompositeInPlaneShear, PropertyID.PID_CompositeTransverseShear, PropertyID.PID_CompositeInPlanePoisson, PropertyID.PID_CompositeTransversePoisson]
+        self.myOutPropIDs =  [PropertyID.PID_EModulus, PropertyID.PID_PoissonRatio, PropertyID.PID_CriticalLoadLevel, , PropertyID.PID_CompositeAxialYoung, PropertyID.PID_CompositeInPlaneYoung, PropertyID.PID_CompositeInPlaneShear, PropertyID.PID_CompositeTransverseShear, PropertyID.PID_CompositeInPlanePoisson, PropertyID.PID_CompositeTransversePoisson]
 
         #dictionary of input properties (values)
         self.myInputProps = {}
@@ -109,12 +108,11 @@ class Workflow_1_1_3(Workflow.Workflow):
             # get result of the simulation
             matrixYoung = self.lammpsSolver.getProperty(PropertyID.PID_EModulus, 0.0)
             matrixPoisson = self.lammpsSolver.getProperty(PropertyID.PID_PoissonRatio, 0.0)
-
+            self.myOutProps[PropertyID.PID_EModulus] = self.lammpsSolver.getProperty(PropertyID.PID_EModulus, 0.0)
+            self.myOutProps[PropertyID.PID_PoissonRatio] = self.lammpsSolver.getProperty(PropertyID.PID_PoissonRatio, 0.0)
         except Exception as err:
             print ("Error:" + repr(err))
             self.terminate()
-
-
         # digimat
         try:
             # map properties from lammps to properties of Digimat
@@ -251,6 +249,11 @@ if __name__=='__main__':
     workflow.setMetadata(MetadataKeys.ExecID, execID)
     workflow.solve()
     time = PQ.PhysicalQuantity(1.0, 's')
+
+    # collect lammps outputs
+    matrixEmodulus = workflow.getProperty(PropertyID.PID_EModulus, 0.0).inUnitsOf('MPa').getValue()
+    matrixPoissonRatio = workflow.getProperty(PropertyID.PID_PoissonRatio, 0.0).getValue()
+
     # collect Digimat outputs
     compositeAxialYoung = workflow.getProperty(PropertyID.PID_CompositeAxialYoung,time).inUnitsOf('MPa').getValue()
     compositeInPlaneYoung = workflow.getProperty(PropertyID.PID_CompositeInPlaneYoung,time).inUnitsOf('MPa').getValue()

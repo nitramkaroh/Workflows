@@ -18,8 +18,7 @@ class Workflow_1_1_2(Workflow.Workflow):
    
     def __init__(self, targetTime=PQ.PhysicalQuantity('0 s')):
         """
-        Initializes the workflow. As the workflow is non-stationary, we allocate individual 
-        applications and store them within a class.
+        Initializes the workflow. 
         """
         super(Workflow_1_1_2, self).__init__(file='', workdir='', targetTime=targetTime)
 
