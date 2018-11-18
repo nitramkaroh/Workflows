@@ -13,14 +13,14 @@ hkey = 'mupif-secret-key'
 comsolJobManName = 'Mupif.JobManager@INSA'
 vpsJobManName='ESI_VPS_Jobmanager'
 
-class Workflow_1_1_5x(Workflow.Workflow):
+class Workflow_1_1_4x(Workflow.Workflow):
    
     def __init__(self, targetTime=PQ.PhysicalQuantity('0 s')):
         """
         Initializes the workflow. As the workflow is non-stationary, we allocate individual 
         applications and store them within a class.
         """
-        super(Workflow_1_1_5x, self).__init__(file='', workdir='', targetTime=targetTime)
+        super(Workflow_1_1_4x, self).__init__(file='', workdir='', targetTime=targetTime)
         
         #list of recognized input porperty IDs
         self.myInputPropIDs = [PropertyID.PID_ESI_VPS_PLY1_E0c1, PropertyID.PID_ESI_VPS_PLY1_E0t2, PropertyID.PID_ESI_VPS_PLY1_E0t3,PropertyID.PID_ESI_VPS_PLY1_G012,PropertyID.PID_ESI_VPS_PLY1_G013,PropertyID.PID_ESI_VPS_PLY1_G023,PropertyID.PID_ESI_VPS_PLY1_NU12,PropertyID.PID_ESI_VPS_PLY1_NU13,PropertyID.PID_ESI_VPS_PLY1_NU23]
@@ -146,7 +146,7 @@ class Workflow_1_1_5x(Workflow.Workflow):
     def terminate(self):
         self.comsolSolver.terminate()
         self.vpsSolver.terminate()
-        super(Workflow_1_1_5x, self).terminate()
+        super(Workflow_1_1_4x, self).terminate()
 
     def getApplicationSignature(self):
         return "Composelector workflow 1.0"
@@ -160,7 +160,7 @@ if __name__=='__main__':
     useCaseID = 1
     execID = 1
     
-    workflow = Workflow_1_1_5x(targetTime=PQ.PhysicalQuantity(1.,'s'))
+    workflow = Workflow_1_1_4x(targetTime=PQ.PhysicalQuantity(1.,'s'))
     # set VPS material properties
     ## Young modulus
     workflow.setProperty(Property.ConstantProperty(100, PropertyID.PID_ESI_VPS_PLY1_E0c1,  ValueType.Scalar, 'MPa', None, 0))
